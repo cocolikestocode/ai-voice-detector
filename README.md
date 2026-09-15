@@ -70,74 +70,131 @@ AI-Voice-Detection/
 
 ---
 
-## 1. Local Setup
+## Quick Start Guide: How to Run the Project
 
-### Prerequisites
-- Python 3.10, 3.11, or 3.12
-- Node.js v18+ and npm
-- Windows, Linux, or macOS
+Whether you are running the project on your local machine or deploying it on another developer's system, follow these steps.
 
-### Python Environment & Dependencies
+---
+
+### Step 0: Clone the Repository & Setup Models (Required for Both Methods)
+
 ```bash
-# From the project root:
-cd AI-Voice-Detection
+# 1. Clone the repository
+git clone https://github.com/cocolikestocode/ai-voice-detector.git
+cd ai-voice-detector
 
-# Install backend dependencies
+# 2. Download or verify the model weights
+# Note: GitHub enforces a 100 MB file limit, so large model files (1.26 GB and 3.79 GB) 
+# are not stored directly in git. Run our setup utility to download them:
+python download_models.py
+```
+
+The model files must be located at:
+- `deepfense-framework/pretrained_models/WavLM-Large.pt` (1.26 GB)
+- `deepfense-framework/models/ASV5_WavLM_AASIST_NoAug_Seed42/best_model.pth` (3.79 GB)
+
+---
+
+## Method 1: Local Development (Recommended for Fast Iteration & SIH Demo)
+
+### 1. Prerequisites
+- **Python**: 3.10, 3.11, or 3.12 installed
+- **Node.js**: v18 or newer installed (includes `npm`)
+- **Operating System**: Windows, Linux, or macOS
+
+### 2. Backend Setup & Startup
+Open **Terminal 1** at the project root:
+
+```bash
+# Install backend Python dependencies
 pip install -r backend/requirements.txt
 
 # Install deepfense framework in editable mode
 pip install -e deepfense-framework --no-deps
-```
 
----
-
-## 2. Local Model Setup
-
-The required model checkpoint and base SSL weights are already included in:
-- `deepfense-framework/pretrained_models/WavLM-Large.pt`
-- `deepfense-framework/models/ASV5_WavLM_AASIST_NoAug_Seed42/best_model.pth`
-
-No additional downloads or HuggingFace tokens are required.
-
----
-
-## 3. Starting the Backend
-
-Start the FastAPI application with Uvicorn:
-```bash
-# In Terminal 1 (from project root):
+# Start FastAPI backend server with hot-reload
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-When startup completes, you will see:
-```
-[INFO] [deepfense.service] Initializing DeepFenseInferenceService...
-[INFO] [deepfense.service] Building detector: StandardDetector...
-[INFO] [deepfense.service] Loading checkpoint weights from: .../best_model.pth
-[INFO] [deepfense.service] DeepFenseInferenceService ready in ~8s.
-[INFO] [deepfense.app] DeepFense model preloaded successfully.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+> **Startup Verification**: You will see DeepFense preload the models in ~8 seconds:
+> ```
+> [INFO] [deepfense.service] Building detector: StandardDetector...
+> [INFO] [deepfense.service] Loading checkpoint weights from: .../best_model.pth
+> [INFO] [deepfense.service] DeepFenseInferenceService ready in ~8s.
+> INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+> ```
+> Backend health can be verified at: `http://localhost:8000/api/health`
+
+### 3. Frontend Setup & Startup (HTTPS for Mobile/Android Support)
+Open **Terminal 2** at the project root:
+
+```bash
+cd frontend
+
+# Install frontend Node dependencies
+npm install
+
+# Start Vite dev server over HTTPS (listens on 0.0.0.0 for LAN access)
+npm run dev
 ```
 
-Verify backend health in browser or curl:
-```bash
-curl http://localhost:8000/api/health
+Vite will start and output your accessible URLs:
 ```
+  ➜  Local:   https://localhost:5173/
+  ➜  Network: https://10.255.214.64:5173/
+```
+
+- **Local Machine**: Open `https://localhost:5173/` in your browser.
+- **Android Phone / LAN Device**: Open `https://<YOUR_LAN_IP>:5173/` in Android Chrome.
 
 ---
 
-## 4. Starting the Frontend (HTTPS for Android / LAN)
+## Method 2: Docker Compose (All-in-One Containerized Setup)
 
-Modern mobile and desktop browsers (Android Chrome, iOS Safari, macOS Safari) **strictly require a Secure Context (HTTPS)** to allow microphone access via `navigator.mediaDevices.getUserMedia`. Accessing via plain HTTP from a LAN IP (e.g. `http://10.255.214.64:5173`) causes `navigator.mediaDevices` to be `undefined`.
+Run the complete frontend, backend, reverse proxy, and PyTorch inference pipeline in isolated Docker containers with a single command.
 
-The Vite development server is configured out-of-the-box for **HTTPS** and listens on `0.0.0.0` so all LAN devices can connect securely.
+### 1. Prerequisites
+- **Docker** and **Docker Compose** installed (e.g. [Docker Desktop](https://www.docker.com/products/docker-desktop/))
+- Ensure model weights are present in `deepfense-framework/` (Step 0)
 
-### Generate / Re-generate Local Certificates (Optional)
-A pre-generated local development certificate is provided in `frontend/certs/`. If your machine's LAN IP changes, you can re-generate certs with:
+### 2. Build & Launch Containers
+From the project root:
+
 ```bash
-cd frontend
-npm run cert
+# Build and start both containers in the background
+docker compose up --build
 ```
+
+Docker Compose spins up two coordinated services:
+1. **`deepfense-backend`**:
+   - Python 3.11 with PyTorch (CPU-optimized), Libsndfile, and FFmpeg.
+   - Automatically preloads `WavLM-Large.pt` and `best_model.pth` via read-only volume mount.
+   - Internal healthcheck monitors `http://localhost:8000/api/health`.
+2. **`deepfense-frontend`**:
+   - Multi-stage build compiling the React SPA into static assets.
+   - Nginx reverse proxy serving static files on port `3000`, proxying `/api` REST requests and `/ws` WebSockets directly to the backend container.
+
+### 3. Accessing the Application
+- **Web App**: Open `http://localhost:3000` (or `http://<HOST_IP>:3000` from any device on your local network).
+- **Backend Healthcheck**: `http://localhost:8000/api/health`
+- **Interactive Swagger Docs**: `http://localhost:8000/docs`
+
+### 4. Stopping the Application
+```bash
+# Stop and clean up containers
+docker compose down
+```
+
+> **Why Host Volume Mounts?**  
+> Notice in `docker-compose.yml` that `./deepfense-framework` is mounted into `/app/deepfense-framework:ro`. This prevents copying ~5 GB of model weights into Docker image layers, keeping Docker builds fast (<30s) and image sizes lightweight.
+
+---
+
+## Mobile & Android Microphone Setup (HTTPS Guide)
+
+Modern mobile browsers (Android Chrome, iOS Safari) **strictly require HTTPS** to permit microphone access (`navigator.mediaDevices.getUserMedia`). Accessing over plain HTTP from a LAN IP results in `getUserMedia is undefined`.
+
+The Vite dev server (`npm run dev`) runs on HTTPS automatically with generated SSL certificates.
 *(Or simply start the server; `@vitejs/plugin-basic-ssl` will automatically provide a valid dev certificate as a fallback).*
 
 ### Start the Vite HTTPS Dev Server
@@ -247,22 +304,7 @@ When your Android phone loads `https://10.255.214.64:5173`:
 
 ---
 
-## 9. Docker Deployment
-
-When deploying as containerized services:
-
-```bash
-# Build and run containers
-docker-compose up --build
-```
-
-- **Frontend**: Accessible on `http://localhost:3000` (served via Nginx with reverse proxy to backend).
-- **Backend**: Running on `http://localhost:8000`.
-- The multi-gigabyte models are mounted read-only from the host (`./deepfense-framework`), ensuring fast build times and zero image bloat.
-
----
-
-## 10. Optional Future Hosted / GPU Server Architecture
+## Optional Future Hosted / GPU Server Architecture
 
 To deploy this application on a cloud GPU instance (e.g. AWS EC2 G4/G5, GCP A100/T4, or RunPod):
 
