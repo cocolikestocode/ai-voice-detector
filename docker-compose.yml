@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: deepfense-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEVICE=cpu
+      - DEFAULT_SPOOF_THRESHOLD=1.0
+      - CONFIG_PATH=/app/deepfense-framework/models/ASV5_WavLM_AASIST_NoAug_Seed42/config.yaml
+      - CKPT_PATH=/app/deepfense-framework/models/ASV5_WavLM_AASIST_NoAug_Seed42/best_model.pth
+      - WAVLM_PATH=/app/deepfense-framework/pretrained_models/WavLM-Large.pt
+    volumes:
+      # Mount deepfense-framework directly to avoid duplicating multi-gigabyte models in image layers
+      - ./deepfense-framework:/app/deepfense-framework:ro
+      - ./backend/app:/app/backend/app:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: deepfense-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy

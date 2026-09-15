@@ -1,0 +1,57 @@
+How to use this model: 
+
+first make a conda enviroment (vrna requirements add nhi honge shi se)
+activate the environment
+
+Run:
+pip install e.
+
+if you want to use your integrated gpu, install drivers for it first, then go to /deepfense-framework/deepfense/cli/test.py
+and search for the line 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+then this cpu to xpu
+(didn't worked for me because low vram available for gpu)
+
+now running the api server:
+only post api is deployed, get api to get results is not (frontend format ke hisab se change krna pdega json response, that's why)
+
+How to use/test this post api:
+After installing dependencies, run this commmand:
+ python -m uvicorn api_server_v2:app --host 0.0.0.0 --port 8000 --log-level debug
+ 
+(make sure uvicorn and fastapi are latest, and doesnt have version mismatch (vrna multiple files lene me problem ati he)
+
+after running go to the localhost swagger ui at 0.0.0.0/docs and use try out function to try it. 
+
+
+----------------Some Info---------------------------------
+This server has built in file slicing (install numpy for it ), and it slices the audio in 4 second chunks (at 16khz), and assigns them the id..each chunk is processed(see parallel processing(explained below) to know how) and a score is given to them..currently i have placed the threshold to be 1 (that means any file chunk having a score less than 1 is classified as spoof)
+
+after all the chunks are processed, earlier i used the average score logic to find the spoof/bonafide (but what if a 20 second audio clip contain 8 seconds of spoof and 12 seconds of real voice ??) so i changed this logic..now if any 1 file is marked as spoof, the whole batch is considered spoof, this parameter can be changed easily in the script, if needed, we can add a user based threshold also, where a user can change this no of spoof chunks..(fronted work dekhlo apne ap..)..
+
+--How Parallel Processing is done:
+Currently the paraller processing is done only considering the file parameters(no of chunks and no of files per execution)..so what i do is based on the number of files/chunks created, the script regenerates a temporary config files (from the original hardcoded config files ) and changes these two parameters:
+1. num_workers: (this parameter manages no of parallel operations to do)
+2. batch_size: (no of chunks to load in the model for processing)
+
+if we can deploy this to a good gpu, we can increase them dynamically for a faster result.
+
+
+---Changing Frontend/backend models in this framework (potential use case for user interaction / decrease compute cost)
+Currently the model uses WavLm_large (frontend model to extract feature..which comes in three versions..base, large, and one more in between..the base one has less parameters therefore less feature detailing and vice versa (we can change this models to large or base if we have preloaded model configs, which i am thinking to do..so add these options in the fronted, as of now, since you guys dont know the model name, just add model_1,2 etc in the frontend, and send the details of this model to the backend, which we will change to the exact model name in the final version)
+
+for the backend models, i am using AASIST  framework (which uses 2 graphs of the frature extracted by the frontend model and provides the final score)
+this model can also be changed..
+so when the user sends model_2 as the required model, we can use a premade combination of frontend + backend which resembles a model equivalent to model_2 selected by users (think of this like gemini-flash-lite, gemini-flash, gemini-pro)
+
+--if anyone wants to change the model
+currently the framework has hardcoded paths to use the wavlm larger model, but i can be changed easily by going to this file:
+/home/astrocipher/deepfense-framework/models/ASV5_WavLM_AASIST_NoAug_Seed42/config.yaml
+
+although i suggest you not to do this, since the backend is really hardcoded in the python scripts that i have maded, so it is not advisable to do this, if you still want to..then explore the repo and change the file paths yourself..thanks!!1
+
+---How to download a new_frontend model ???
+ask gpt to give the model's url link, and download it using wget command setting the output parameter to pretrained_models to save it there..
+
+--Tuning in models(if anyone wanna try)
+currently the model uses "Class Entropy" as its loss function, we can change this loss functions to other available loss functions like softmax etc (i am also exploring this part to increase accuracy and speed), so yeah..try if anyone wants to..

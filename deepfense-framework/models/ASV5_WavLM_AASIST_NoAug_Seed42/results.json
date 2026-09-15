@@ -1,0 +1,9 @@
+{
+  "loss": 0.022459855303168297,
+  "ACC": 1.0,
+  "EER": null,
+  "CustomTestDataset": {
+    "ACC": 1.0,
+    "EER": null
+  }
+}

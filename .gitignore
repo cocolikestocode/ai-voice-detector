@@ -1,0 +1,90 @@
+# =============================================================================
+# Python & Virtual Environments
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# =============================================================================
+# Large ML Checkpoints & Pretrained Weights (>100MB, exceeded GitHub file limits)
+# =============================================================================
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+
+# Preserve directory structure with .gitkeep
+!deepfense-framework/pretrained_models/.gitkeep
+!deepfense-framework/models/ASV5_WavLM_AASIST_NoAug_Seed42/.gitkeep
+
+# =============================================================================
+# Temporary Audio & API Buffers (Privacy & Zero Audio Retention)
+# =============================================================================
+temp_audio/*
+!temp_audio/.gitkeep
+deepfense-framework/temp_audio/*
+!deepfense-framework/temp_audio/.gitkeep
+results_for_api/*.csv
+*.parquet
+
+# Keep authentic test audio fixture
+!deepfense-framework/tests/dummy_audio/test.wav
+
+# =============================================================================
+# Frontend Artifacts & Dependencies
+# =============================================================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+
+# Local development SSL private keys (regenerate via npm run cert)
+frontend/certs/*.key
+frontend/certs/*.csr
+frontend/certs/*.ext
+frontend/certs/*.srl
+frontend/certs/.vite-plugin-basic-ssl/
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+.env
+.env.local
+.env.*.local
+
+# =============================================================================
+# IDEs & System Files
+# =============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
