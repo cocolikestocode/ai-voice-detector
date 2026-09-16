@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, ShieldAlert, FileAudio, PhoneCall, Cpu } from "lucide-react";
+import { Shield, FileAudio, PhoneCall, Cpu, Home } from "lucide-react";
 
 export function Navbar({ activeMode, onModeChange, backendHealth }) {
   const isOnline = backendHealth?.status === "online";
@@ -8,7 +8,11 @@ export function Navbar({ activeMode, onModeChange, backendHealth }) {
   return (
     <header className="navbar-container">
       <div className="navbar-left">
-        <div className="brand-logo">
+        <div 
+          className="brand-logo brand-clickable" 
+          onClick={() => onModeChange("landing")}
+          title="Return to DeepFense Overview"
+        >
           <Shield className="brand-icon" />
           <div>
             <div className="brand-title">DEEPFENSE <span className="brand-version">SIH26104</span></div>
@@ -20,17 +24,25 @@ export function Navbar({ activeMode, onModeChange, backendHealth }) {
       <div className="navbar-center">
         <nav className="mode-selector">
           <button
+            className={`mode-btn ${activeMode === "landing" ? "active" : ""}`}
+            onClick={() => onModeChange("landing")}
+            title="Overview & Architecture"
+          >
+            <Home size={17} />
+            <span>Overview</span>
+          </button>
+          <button
             className={`mode-btn ${activeMode === "file" ? "active" : ""}`}
             onClick={() => onModeChange("file")}
           >
-            <FileAudio size={18} />
+            <FileAudio size={17} />
             <span>Analyze Audio File</span>
           </button>
           <button
             className={`mode-btn ${activeMode === "live" ? "active" : ""}`}
             onClick={() => onModeChange("live")}
           >
-            <PhoneCall size={18} />
+            <PhoneCall size={17} />
             <span>Secure Live Call</span>
           </button>
         </nav>

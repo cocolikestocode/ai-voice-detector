@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Navbar } from "./components/Navbar";
+import { LandingPage } from "./components/LandingPage";
 import { FileAnalysis } from "./components/FileAnalysis";
 import { LiveCall } from "./components/LiveCall";
 import { API_BASE_URL } from "./config";
 
 export function App() {
-  const [activeMode, setActiveMode] = useState("file"); // "file" or "live"
+  const [activeMode, setActiveMode] = useState("landing"); // "landing", "file", or "live"
   const [backendHealth, setBackendHealth] = useState(null);
 
   useEffect(() => {
@@ -28,6 +29,17 @@ export function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Landing Page Mode
+  if (activeMode === "landing") {
+    return (
+      <LandingPage
+        onLaunch={(targetMode) => setActiveMode(targetMode || "file")}
+        backendHealth={backendHealth}
+      />
+    );
+  }
+
+  // Detection Interface Console (File Analysis / Live Call)
   return (
     <div className="app-container">
       <Navbar
